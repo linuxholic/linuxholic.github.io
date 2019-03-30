@@ -97,12 +97,12 @@
 
 
   <meta property="og:type" content="website">
-<meta property="og:title" content="Hexo">
+<meta property="og:title" content="linuxholic&#39;s blog">
 <meta property="og:url" content="http://yoursite.com/index.html">
-<meta property="og:site_name" content="Hexo">
+<meta property="og:site_name" content="linuxholic&#39;s blog">
 <meta property="og:locale" content="default">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Hexo">
+<meta name="twitter:title" content="linuxholic&#39;s blog">
 
 
 
@@ -120,7 +120,7 @@
   };
 </script>
 
-  <title>Hexo</title>
+  <title>linuxholic's blog</title>
   
 
 
@@ -180,7 +180,7 @@
     <div class="custom-logo-site-title">
       <a href="/" class="brand" rel="start">
         <span class="logo-line-before"><i></i></span>
-        <span class="site-title">Hexo</span>
+        <span class="site-title">linuxholic's blog</span>
         <span class="logo-line-after"><i></i></span>
       </a>
     </div>
@@ -286,16 +286,188 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/03/30/hello-world/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/03/30/networking-perf/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="John Doe">
+      <meta itemprop="name" content="linuxholic">
       <meta itemprop="description" content>
       <meta itemprop="image" content="/images/avatar.gif">
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Hexo">
+      <meta itemprop="name" content="linuxholic's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                
+                <a href="/2019/03/30/networking-perf/" class="post-title-link" itemprop="url">networking-perf</a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2019-03-30 16:43:29 / Modified: 17:37:40" itemprop="dateCreated datePublished" datetime="2019-03-30T16:43:29+08:00">2019-03-30</time>
+            
+
+            
+              
+
+              
+            
+          </span>
+
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h1 id="主题"><a href="#主题" class="headerlink" title="主题"></a>主题</h1><ul>
+<li>基于 linux 内核，机器是如何接受数据包的？</li>
+<li>数据包从网卡到应用层会经过若干个组件，如何针对性的进行监控和调优？</li>
+</ul>
+<h1 id="基本原则"><a href="#基本原则" class="headerlink" title="基本原则"></a>基本原则</h1><ul>
+<li>理论上，只需要在网络栈的各个层次监控 <strong>丢包率</strong>，就可以很快的定位系统当前的瓶颈；</li>
+<li>这个时候如果只是参考网上的一份”最优“ sysctl 配置，往往不能达到很好的效果；</li>
+<li>调优的前提是，我们需要有清晰的可监控指标来验证实际的效果。</li>
+</ul>
+<h1 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h1><p>数据包从抵达网卡开始，一路到达套接字的 receive buffer：</p>
+<ul>
+<li>驱动加载和初始化</li>
+<li>数据包到达网卡控制器(NIC)</li>
+<li>数据包被复制到内核空间（ DMA -&gt; ring buffer ）</li>
+<li>产生硬件中断，通知系统数据可读</li>
+<li>驱动调用 NAPI 激活 poll 循环（如果该循环处于休眠状态）</li>
+<li>ksoftirpd 调用驱动注册的 poll 函数，读取 ring buffer 中的数据包</li>
+<li>ring buffer 对应的内存区域被解除映射（ memory region unmapped ）</li>
+<li>数据包被封装为 <code>skb</code> 结构体，准备传递到上层协议栈</li>
+<li>如果开启网卡多队列，数据帧会被负载均衡到多个 CPU 进行处理</li>
+<li>数据帧经由队列，递交上层协议栈</li>
+<li>协议栈处理（ IP -&gt; UDP/TCP ）</li>
+<li>数据被填充到套接字的 receive buffer</li>
+</ul>
+          <!--noindex-->
+          
+            <div class="post-button text-center">
+              <a class="btn" href="/2019/03/30/networking-perf/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/03/30/hello-world/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="linuxholic">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="linuxholic's blog">
     </span>
 
     
@@ -449,7 +621,7 @@
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
-              <p class="site-author-name" itemprop="name">John Doe</p>
+              <p class="site-author-name" itemprop="name">linuxholic</p>
               <div class="site-description motion-element" itemprop="description"></div>
           </div>
 
@@ -460,7 +632,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">1</span>
+                    <span class="site-state-item-count">2</span>
                     <span class="site-state-item-name">posts</span>
                   </a>
                 </div>
@@ -510,7 +682,7 @@
   <span class="with-love" id="animate">
     <i class="fa fa-user"></i>
   </span>
-  <span class="author" itemprop="copyrightHolder">John Doe</span>
+  <span class="author" itemprop="copyrightHolder">linuxholic</span>
 
   
 

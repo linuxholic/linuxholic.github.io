@@ -84,4 +84,4 @@ theme: next
 deploy:
   type: git
   repo: git@github.com:linuxholic/linuxholic.github.io.git
-  branch: master
+  branch: publish

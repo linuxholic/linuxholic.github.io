@@ -96,13 +96,17 @@
 
 
 
-  <meta property="og:type" content="website">
-<meta property="og:title" content="Hexo">
-<meta property="og:url" content="http://yoursite.com/index.html">
+  <meta name="description" content="主题 基于 linux 内核，机器是如何接受数据包的？ 数据包从网卡到应用层会经过若干个组件，如何针对性的进行监控和调优？  基本原则 理论上，只需要在网络栈的各个层次监控 丢包率，就可以很快的定位系统当前的瓶颈； 这个时候如果只是参考网上的一份”最优“ sysctl 配置，往往不能达到很好的效果； 调优的前提是，我们需要有清晰的可监控指标来验证实际的效果。  概述数据包从抵达网卡开始，一路到达套">
+<meta property="og:type" content="article">
+<meta property="og:title" content="networking-perf">
+<meta property="og:url" content="http://yoursite.com/2019/03/30/networking-perf/index.html">
 <meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="主题 基于 linux 内核，机器是如何接受数据包的？ 数据包从网卡到应用层会经过若干个组件，如何针对性的进行监控和调优？  基本原则 理论上，只需要在网络栈的各个层次监控 丢包率，就可以很快的定位系统当前的瓶颈； 这个时候如果只是参考网上的一份”最优“ sysctl 配置，往往不能达到很好的效果； 调优的前提是，我们需要有清晰的可监控指标来验证实际的效果。  概述数据包从抵达网卡开始，一路到达套">
 <meta property="og:locale" content="default">
+<meta property="og:updated_time" content="2019-03-30T08:45:23.038Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Hexo">
+<meta name="twitter:title" content="networking-perf">
+<meta name="twitter:description" content="主题 基于 linux 内核，机器是如何接受数据包的？ 数据包从网卡到应用层会经过若干个组件，如何针对性的进行监控和调优？  基本原则 理论上，只需要在网络栈的各个层次监控 丢包率，就可以很快的定位系统当前的瓶颈； 这个时候如果只是参考网上的一份”最优“ sysctl 配置，往往不能达到很好的效果； 调优的前提是，我们需要有清晰的可监控指标来验证实际的效果。  概述数据包从抵达网卡开始，一路到达套">
 
 
 
@@ -110,7 +114,7 @@
 
   
   
-  <link rel="canonical" href="http://yoursite.com/">
+  <link rel="canonical" href="http://yoursite.com/2019/03/30/networking-perf/">
 
 
 
@@ -120,7 +124,7 @@
   };
 </script>
 
-  <title>Hexo</title>
+  <title>networking-perf | Hexo</title>
   
 
 
@@ -168,8 +172,7 @@
     
   
 
-  <div class="container sidebar-position-left 
-  page-home">
+  <div class="container sidebar-position-left page-post-detail">
     <div class="headband"></div>
 
     <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
@@ -207,7 +210,7 @@
         
         
           
-          <li class="menu-item menu-item-home menu-item-active">
+          <li class="menu-item menu-item-home">
 
     
     
@@ -269,9 +272,9 @@
           
           <div id="content" class="content">
             
-  <section id="posts" class="posts-expand">
+
+  <div id="posts" class="posts-expand">
     
-      
 
   
 
@@ -303,10 +306,8 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">
-                
-                
-                <a href="/2019/03/30/networking-perf/" class="post-title-link" itemprop="url">networking-perf</a>
+          <h1 class="post-title" itemprop="name headline">networking-perf
+
               
             
           </h1>
@@ -370,9 +371,7 @@
       
 
       
-        
-          
-            <h1 id="主题"><a href="#主题" class="headerlink" title="主题"></a>主题</h1><ul>
+        <h1 id="主题"><a href="#主题" class="headerlink" title="主题"></a>主题</h1><ul>
 <li>基于 linux 内核，机器是如何接受数据包的？</li>
 <li>数据包从网卡到应用层会经过若干个组件，如何针对性的进行监控和调优？</li>
 </ul>
@@ -741,8 +740,6 @@
 <p>Because all of the packets for a single stream (i.e., all<br>packets for the same 4-tuple) arrive on the single RX queue<br>that is associated with a particular CPU, the typical use case<br>is to employ one listening process per RX queue, with the<br>incoming flow being handled by a listener on the same CPU that<br>is handling the RX queue.  This provides optimal NUMA behavior<br>and keeps CPU caches hot.</p>
 <p>目前最新版本内核已经弃用，参考这篇 <a href="https://blog.cloudflare.com/perfect-locality-and-three-epic-systemtap-scripts/" target="_blank" rel="noopener">cloudflare blogpost</a></p>
 
-          
-        
       
     </div>
 
@@ -765,159 +762,28 @@
       
 
       
-
-      
-
       
       
-        <div class="post-eof"></div>
+
       
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/03/30/hello-world/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="John Doe">
-      <meta itemprop="description" content>
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Hexo">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                
-                <a href="/2019/03/30/hello-world/" class="post-title-link" itemprop="url">Hello World</a>
-              
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
             
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-
+              <a href="/2019/03/30/hello-world/" rel="next" title="Hello World">
+                <i class="fa fa-chevron-left"></i> Hello World
+              </a>
             
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
             
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-
-              
-                
-              
-
-              <time title="Created: 2019-03-30 12:22:24" itemprop="dateCreated datePublished" datetime="2019-03-30T12:22:24+08:00">2019-03-30</time>
-            
-
-            
-          </span>
-
-          
-
-          
-            
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
+          </div>
         </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
       
 
       
-        
-          
-            <p>Welcome to <a href="https://hexo.io/" target="_blank" rel="noopener">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/" target="_blank" rel="noopener">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html" target="_blank" rel="noopener">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues" target="_blank" rel="noopener">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">"My New Post"</span></span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/writing.html" target="_blank" rel="noopener">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/server.html" target="_blank" rel="noopener">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/generating.html" target="_blank" rel="noopener">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/deployment.html" target="_blank" rel="noopener">Deployment</a></p>
-
-          
-        
-      
-    </div>
-
-    
-
-    
-    
-    
-
-    
-
-    
-      
-    
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
       
     </footer>
   </div>
@@ -927,14 +793,15 @@
   </article>
 
 
-    
-  </section>
-
-  
+  </div>
 
 
           </div>
           
+
+  
+
+
 
         </div>
         
@@ -954,8 +821,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
 
-      <div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <div class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -1001,6 +877,23 @@
         </div>
       </div>
 
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#主题"><span class="nav-number">1.</span> <span class="nav-text">主题</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#基本原则"><span class="nav-number">2.</span> <span class="nav-text">基本原则</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#概述"><span class="nav-number">3.</span> <span class="nav-text">概述</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#详述"><span class="nav-number">4.</span> <span class="nav-text">详述</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#网卡驱动"><span class="nav-number">4.1.</span> <span class="nav-text">网卡驱动</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#PCI-注册"><span class="nav-number">4.1.1.</span> <span class="nav-text">PCI 注册</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#设备初始化"><span class="nav-number">4.1.2.</span> <span class="nav-text">设备初始化</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#NOTE：IRQ-和-NAPI"><span class="nav-number">4.1.2.1.</span> <span class="nav-text">NOTE：IRQ 和 NAPI</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#网卡启动"><span class="nav-number">4.1.3.</span> <span class="nav-text">网卡启动</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#网卡监控"><span class="nav-number">4.1.4.</span> <span class="nav-text">网卡监控</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#网卡调优"><span class="nav-number">4.1.5.</span> <span class="nav-text">网卡调优</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#软中断"><span class="nav-number">4.2.</span> <span class="nav-text">软中断</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Linux-网络栈"><span class="nav-number">4.3.</span> <span class="nav-text">Linux 网络栈</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#初始化"><span class="nav-number">4.3.1.</span> <span class="nav-text">初始化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#数据接收"><span class="nav-number">4.3.2.</span> <span class="nav-text">数据接收</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#中断处理函数"><span class="nav-number">4.3.2.1.</span> <span class="nav-text">中断处理函数</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#NAPI-napi-schedule"><span class="nav-number">4.3.2.2.</span> <span class="nav-text">NAPI napi_schedule</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#监控数据接收"><span class="nav-number">4.3.2.3.</span> <span class="nav-text">监控数据接收</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#调优数据接收"><span class="nav-number">4.3.2.4.</span> <span class="nav-text">调优数据接收</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#数据处理"><span class="nav-number">4.3.3.</span> <span class="nav-text">数据处理</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#net-rx-action-处理循环"><span class="nav-number">4.3.3.1.</span> <span class="nav-text">net_rx_action 处理循环</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#NAPI-poll-函数和权重"><span class="nav-number">4.3.3.2.</span> <span class="nav-text">NAPI poll 函数和权重</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#NAPI-和网卡驱动的约定"><span class="nav-number">4.3.3.3.</span> <span class="nav-text">NAPI 和网卡驱动的约定</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#结束-net-rx-action-循环"><span class="nav-number">4.3.3.4.</span> <span class="nav-text">结束 net_rx_action 循环</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#NAPI-poll-函数详解"><span class="nav-number">4.3.3.5.</span> <span class="nav-text">NAPI poll 函数详解</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#监控数据处理"><span class="nav-number">4.3.3.6.</span> <span class="nav-text">监控数据处理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#调优数据处理"><span class="nav-number">4.3.3.7.</span> <span class="nav-text">调优数据处理</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#GRO"><span class="nav-number">4.3.4.</span> <span class="nav-text">GRO</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#napi-gro-receive"><span class="nav-number">4.3.5.</span> <span class="nav-text">napi_gro_receive</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#内部机制：负载均衡和流控"><span class="nav-number">4.4.</span> <span class="nav-text">内部机制：负载均衡和流控</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Receive-Packet-Steering-RPS"><span class="nav-number">4.4.1.</span> <span class="nav-text">Receive Packet Steering (RPS)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#调优：启用-RPS"><span class="nav-number">4.4.2.</span> <span class="nav-text">调优：启用 RPS</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Receive-Flow-Steering-RFS"><span class="nav-number">4.4.3.</span> <span class="nav-text">Receive Flow Steering (RFS)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#调优：开启-RFS"><span class="nav-number">4.4.4.</span> <span class="nav-text">调优：开启 RFS</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#数据包递交上层协议栈：netif-receive-skb"><span class="nav-number">4.5.</span> <span class="nav-text">数据包递交上层协议栈：netif_receive_skb</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#调优：时间戳"><span class="nav-number">4.5.1.</span> <span class="nav-text">调优：时间戳</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#backlog-队列"><span class="nav-number">4.5.2.</span> <span class="nav-text">backlog 队列</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Flow-limits"><span class="nav-number">4.5.3.</span> <span class="nav-text">Flow limits</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#监控-backlog-丢包"><span class="nav-number">4.5.4.</span> <span class="nav-text">监控 backlog 丢包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#调优"><span class="nav-number">4.5.5.</span> <span class="nav-text">调优</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#抓包"><span class="nav-number">4.5.6.</span> <span class="nav-text">抓包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#送达协议层"><span class="nav-number">4.5.7.</span> <span class="nav-text">送达协议层</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#协议层"><span class="nav-number">4.6.</span> <span class="nav-text">协议层</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#MISC"><span class="nav-number">4.7.</span> <span class="nav-text">MISC</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#SO-INCOMING-CPU"><span class="nav-number">4.7.1.</span> <span class="nav-text">SO_INCOMING_CPU</span></a></li></ol></li></ol></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
       
 
       
@@ -1129,6 +1022,10 @@
 
 
   
+  <script src="/js/src/scrollspy.js?v=7.0.1"></script>
+<script src="/js/src/post-details.js?v=7.0.1"></script>
+
+
 
   
 
@@ -1144,6 +1041,8 @@
 
   
 
+
+  
 
 
   

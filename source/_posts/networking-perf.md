@@ -44,7 +44,7 @@ tags:
 
 设备加载时，内核会调用驱动通过 `module_init` 注册的初始化函数
 
-```
+```c
 /**
  *  igb_init_module - Driver Registration Routine
  *
@@ -68,7 +68,7 @@ module_init(igb_init_module);
 
 其中 `pci_register_driver` 具体实现了注册到内核  **PCI子系统** 的任务
 
-```
+```c
 static struct pci_driver igb_driver = {
   .name     = igb_driver_name,
   .id_table = igb_pci_tbl,
@@ -96,7 +96,7 @@ static struct pci_driver igb_driver = {
 
 `net_device_ops` 包含一系列函数指针，用来控制网卡的各种动作
 
-```
+```c
 static const struct net_device_ops igb_netdev_ops = {
   .ndo_open               = igb_open,
   .ndo_stop               = igb_close,
@@ -155,7 +155,7 @@ PS：多队列的情况下，每个 rx / tx 队列都对应一个 poll 循环，
 
 激活中断的方式取决于硬件，一般是通过写入网卡的特殊寄存器实现：
 
-```
+```c
 static void igb_irq_enable(struct igb_adapter *adapter)
 {
 
@@ -180,7 +180,7 @@ static void igb_irq_enable(struct igb_adapter *adapter)
 
 `ethtool` 的使用方式如下：
 
-```
+```sh
 $ sudo ethtool -S eth0
 NIC statistics:
      rx_packets: 597028087
@@ -199,7 +199,7 @@ NIC statistics:
 
 `sysfs` 提供的指标相比 `ethtool` 更高阶一些，比如这样：
 
-```
+```sh
 $ cat /sys/class/net/eth0/statistics/rx_dropped
 2
 ```
@@ -210,7 +210,7 @@ $ cat /sys/class/net/eth0/statistics/rx_dropped
 
 `/proc/net/dev` 提供的数据更为概括性，类似这样：
 
-```
+```sh
 $ cat /proc/net/dev
 Inter-|   Receive                                                |  Transmit
  face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed
@@ -251,7 +251,7 @@ Inter-|   Receive                                                |  Transmit
 
 `ksoftirqd` 线程在内核启动期间产生：
 
-```
+```c
 static struct smp_hotplug_thread softirq_threads = {
   .store              = &ksoftirqd,
   .thread_should_run  = ksoftirqd_should_run,
@@ -283,7 +283,7 @@ PS：通过工具查看 CPU 使用率的时候，`softirq`/`si` 部分就对应�
 
 通过 `/proc/softirqs` 文件，我们可以监控各类事件触发软中断的频率：
 
-```
+```sh
 $ cat /proc/softirqs
                     CPU0       CPU1       CPU2       CPU3
           HI:          0          0          0          0
@@ -322,7 +322,7 @@ BLOCK_IOPOLL:          0          0          0          0
 
 此外，初始化函数还分别注册了数据接收和发送的软中断处理函数：
 
-```
+```c
 static int __init net_dev_init(void)
 {
   /* ... */
@@ -343,7 +343,7 @@ static int __init net_dev_init(void)
 一般来说，中断处理函数应该尽量延迟任务到中断环境之外执行，因为中断处理期间会屏蔽后续的中断信号。
 下面这个是 MSI-X 的中断处理函数：
 
-```
+```c
 static irqreturn_t igb_msix_ring(int irq, void *data)
 {
   struct igb_q_vector *q_vector = data;
@@ -365,7 +365,7 @@ static irqreturn_t igb_msix_ring(int irq, void *data)
 
 `napi_schedule` 定义在头文件中，只是对 `__napi_schedule` 的简单封装：
 
-```
+```c
 /**
  * __napi_schedule - schedule for receive
  * @n: entry to schedule
@@ -385,7 +385,7 @@ EXPORT_SYMBOL(__napi_schedule);
 
 需要关注的是 `__get_cpu_var` 这个函数，拿到了注册到当前 CPU 上的 `softnet_data` 结构体；这个结构体和 `struct napi_struct` 一起传给了 `____napi_schedule` 函数：
 
-```
+```c
 /* Called with irq disabled */
 static inline void ____napi_schedule(struct softnet_data *sd,
                                      struct napi_struct *napi)
@@ -410,7 +410,7 @@ static inline void ____napi_schedule(struct softnet_data *sd,
 
 需要注意的是，硬件中断的变化并不能完全反应数据帧处理的变化，因为驱动程序一般会在 NAPI 执行期间屏蔽硬件中断。
 
-```
+```sh
 $ cat /proc/interrupts
             CPU0       CPU1       CPU2       CPU3
    0:         46          0          0          0 IR-IO-APIC-edge      timer
@@ -439,7 +439,7 @@ $ cat /proc/interrupts
 
 中断合并用来阻止发送中断信号到 CPU，直到积累了一定数量的待处理事件，以此避免中断风暴，也可以一定程度上改善吞吐量和延迟。`ethtool` 工具对此也提供了支持：
 
-```
+```sh
 $ sudo ethtool -c eth0
 Coalesce parameters for eth0:
 Adaptive RX: off  TX: off
@@ -454,7 +454,7 @@ pkt-rate-high: 0
 
 值得一提的一个选项是，自适应中断合并。这个功能一般在硬件层面实现，但需要驱动程序的配合才能真正启用。启用这个功能的效果很诱人：流量低峰期降低延时，流量高峰期提升吞吐。
 
-```
+```sh
 $ sudo ethtool -C eth0 adaptive-rx on
 ```
 
@@ -477,7 +477,7 @@ $ sudo ethtool -C eth0 adaptive-rx on
 
 最后，我们修改系统文件 `/proc/irq/IRQ_NUMBER/smp_affinity` 来指定 CPU：
 
-```
+```sh
 $ sudo bash -c 'echo 1 > /proc/irq/8/smp_affinity'
 ```
 
@@ -494,7 +494,7 @@ $ sudo bash -c 'echo 1 > /proc/irq/8/smp_affinity'
 1. 随时检查工作量相关的 `budget`
 2. 检查当前已经执行的时长
 
-```
+```sh
   while (!list_empty(&sd->poll_list)) {
     struct napi_struct *n;
     int work, weight;
@@ -502,7 +502,7 @@ $ sudo bash -c 'echo 1 > /proc/irq/8/smp_affinity'
     /* If softirq window is exhausted then punt.
      * Allow this to run for 2 jiffies since which will allow
      * an average latency of 1.5/HZ.
-     */ 
+     */
     if (unlikely(budget <= 0 || time_after_eq(jiffies, time_limit)))
       goto softnet_break;
 ```
@@ -515,7 +515,7 @@ $ sudo bash -c 'echo 1 > /proc/irq/8/smp_affinity'
 
 之前提到每个 NAPI 结构体都赋予了一个权重，目前是硬编码为 64，现在看下这个值是如何起作用的：
 
-```
+```c
 weight = n->weight;
 
 work = 0;
@@ -554,7 +554,7 @@ budget -= work;
 
 达到循环结束的限制条件之后，会跳转到下面的地方执行：
 
-```
+```c
 softnet_break:
   sd->time_squeeze++;
   __raise_softirq_irqoff(NET_RX_SOFTIRQ);
@@ -577,7 +577,7 @@ softnet_break:
 
 作为例子，我们看下 `igb` 的实现：
 
-```
+```c
 /**
  *  igb_poll - NAPI Rx polling callback
  *  @napi: napi polling structure
@@ -639,7 +639,7 @@ static int igb_poll(struct napi_struct *napi, int budget)
 
 [net/core/net-procfs.c](https://github.com/torvalds/linux/blob/v3.13/net/core/net-procfs.c#L161-L165)
 
-```
+```c
   seq_printf(seq,
        "%08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x\n",
        sd->processed, sd->dropped, sd->time_squeeze, 0,
@@ -649,7 +649,7 @@ static int igb_poll(struct napi_struct *napi, int budget)
 
 之前在 `net_rx_action` 里提到了 `squeeze_time` 这个统计数据，刚好这里一起看下：
 
-```
+```sh
 $ cat /proc/net/softnet_stat
 6dcad223 00000000 00000001 00000000 00000000 00000000 00000000 00000000 00000000 00000000
 6f0e1565 00000000 00000002 00000000 00000000 00000000 00000000 00000000 00000000 00000000
@@ -675,7 +675,7 @@ $ cat /proc/net/softnet_stat
 
 这里可以调整的一个参数是 `budget`，影响 `net_rx_action` 的处理效率。
 
-```
+```sh
 $ sudo sysctl -w net.core.netdev_budget=600
 ```
 
@@ -691,13 +691,13 @@ PS：我们偶尔在 `tcpdump` 抓包的时候，可能会看到一些巨大的�
 
 这个特性可以通过 `ethtool` 工具进行调整：
 
-```
+```sh
 $ sudo ethtool -K eth0 gro on
 ```
 
 也可以查看当前系统是否开启了这个功能：
 
-```
+```sh
 $ ethtool -k eth0 | grep generic-receive-offload
 generic-receive-offload: on
 ```
@@ -736,7 +736,7 @@ RPS 基本的流程是这样的：
 
 通过位掩码，我们可以指定 CPU 来处理指定的网卡队列：
 
-```
+```sh
 /sys/class/net/eth0/queues/rx-0/rps_cpus
 
 ```
@@ -753,13 +753,13 @@ RFS 依赖于 RPS，必须首先保证 RPS 是开启的。
 
 RFS 内部维护一个流的全局哈希表，这个哈希表的大小可以调整：
 
-```
+```sh
 $ sudo sysctl -w net.core.rps_sock_flow_entries=32768
 ```
 
 另外，针对每个网卡队列，也可以单独设置 rps 的流数量：
 
-```
+```sh
 $ sudo bash -c 'echo 2048 > /sys/class/net/eth0/queues/rx-0/rps_flow_cnt'
 ```
 
@@ -774,7 +774,7 @@ $ sudo bash -c 'echo 2048 > /sys/class/net/eth0/queues/rx-0/rps_flow_cnt'
 
 ### 调优：时间戳
 
-```
+```sh
 $ sudo sysctl -w net.core.netdev_tstamp_prequeue=0
 ```
 
@@ -784,7 +784,7 @@ $ sudo sysctl -w net.core.netdev_tstamp_prequeue=0
 
 RPS 首先计算目标 CPU，然后将数据加入目标 CPU 的 backlog 队列：
 
-```
+```c
 cpu = get_rps_cpu(skb->dev, skb, &rflow);
 
 if (cpu >= 0) {
@@ -796,7 +796,7 @@ if (cpu >= 0) {
 
 在 `enqueue_to_backlog` 中，会检查该 CPU 的队列大小：
 
-```
+```c
 qlen = skb_queue_len(&sd->input_pkt_queue);
 if (qlen <= netdev_max_backlog && !skb_flow_limit(skb, qlen)) {
 ```
@@ -815,13 +815,13 @@ PS：如果没有开启 RPS，这里的限制条件就没有用到了。
 
 调整 backlog 队列的最大值，可以减少丢包的发生：
 
-```
+```sh
 $ sudo sysctl -w net.core.netdev_max_backlog=3000
 ```
 
 调整 backlog 队列处理的权重：
 
-```
+```sh
 $ sudo sysctl -w net.core.dev_weight=600
 ```
 
@@ -829,7 +829,7 @@ $ sudo sysctl -w net.core.dev_weight=600
 
 流控所使用的哈希表大小也可以调整：
 
-```
+```sh
 $ sudo sysctl -w net.core.flow_limit_table_len=8192
 ```
 
@@ -862,18 +862,11 @@ gettable since Linux 3.19, settable since Linux 4.4
 
 Sets or gets the CPU affinity of a socket.  Expects an integer flag.
 
-```
+```c
 int cpu = 1;
 setsockopt(fd, SOL_SOCKET, SO_INCOMING_CPU, &cpu, sizeof(cpu));
 ```
 
-
-Because all of the packets for a single stream (i.e., all
-packets for the same 4-tuple) arrive on the single RX queue
-that is associated with a particular CPU, the typical use case
-is to employ one listening process per RX queue, with the
-incoming flow being handled by a listener on the same CPU that
-is handling the RX queue.  This provides optimal NUMA behavior
-and keeps CPU caches hot.
+Because all of the packets for a single stream (i.e., all packets for the same 4-tuple) arrive on the single RX queue that is associated with a particular CPU, the typical use case is to employ one listening process per RX queue, with the incoming flow being handled by a listener on the same CPU that is handling the RX queue.  This provides optimal NUMA behavior and keeps CPU caches hot.
 
 目前最新版本内核已经弃用，参考这篇 [cloudflare blogpost](https://blog.cloudflare.com/perfect-locality-and-three-epic-systemtap-scripts/)

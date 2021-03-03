@@ -1,6 +1,6 @@
 ---
-title: python-os-popen
-date: 2021-03-01
+title: os-popen
+date: 2021-03-02 15:31:21
 tags: python
 ---
 
@@ -30,6 +30,8 @@ now = os.popen('date').read()
 我们一般都只会关心 shell 命令的输出，也就是上述代码中的 `now`；
 
 容易掉坑的地方就在这里，我们忽略了对 `os.popen()` 返回值的处理！
+
+<!-- more -->
 
 为什么需要处理返回值？有两点原因：
 
@@ -150,7 +152,7 @@ now = subprocess.check_out(['date'])
 
 bingo!
 
-对于之前提供的两个问题：
+对于之前提到的两个问题：
 
 * 命令执行出错如何处理？函数会抛出 `CalledProcessError` 异常，捕获处理即可。
 * zombie process 如何避免？subprocess.check_out() 内部做了完善的处理，无需再额外关注

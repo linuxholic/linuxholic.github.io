@@ -24,28 +24,33 @@
     var NexT = window.NexT || {};
     var CONFIG = {"hostname":"linuxholic.github.io","root":"/","images":"/images","scheme":"Muse","version":"8.2.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}};
   </script>
-<meta property="og:type" content="website">
-<meta property="og:title" content="linuxholic&#39;s blog">
-<meta property="og:url" content="http://linuxholic.github.io/index.html">
+<meta name="description" content="nginx 缓冲Module ngx_http_proxy_module nginx 转发 upstream 数据到 client，如果上下游网速不匹配，典型的，upstream 发送数据的速度，一般远大于 client 接收数据的速度，就会导致数据在 nginx 积压，我们可以通过配置指令 1proxy_buffering on|off 选择性的开启或者关闭 nginx 对 upstream 数">
+<meta property="og:type" content="article">
+<meta property="og:title" content="nginx-buffering">
+<meta property="og:url" content="http://linuxholic.github.io/2021/11/23/nginx-buffering/index.html">
 <meta property="og:site_name" content="linuxholic&#39;s blog">
+<meta property="og:description" content="nginx 缓冲Module ngx_http_proxy_module nginx 转发 upstream 数据到 client，如果上下游网速不匹配，典型的，upstream 发送数据的速度，一般远大于 client 接收数据的速度，就会导致数据在 nginx 积压，我们可以通过配置指令 1proxy_buffering on|off 选择性的开启或者关闭 nginx 对 upstream 数">
 <meta property="og:locale">
+<meta property="article:published_time" content="2021-11-23T12:37:06.000Z">
+<meta property="article:modified_time" content="2021-11-23T12:41:47.821Z">
 <meta property="article:author" content="linuxholic">
+<meta property="article:tag" content="nginx">
 <meta name="twitter:card" content="summary">
 
 
-<link rel="canonical" href="http://linuxholic.github.io/">
+<link rel="canonical" href="http://linuxholic.github.io/2021/11/23/nginx-buffering/">
 
 
 <script class="page-configurations">
   // https://hexo.io/docs/variables.html
   CONFIG.page = {
     sidebar: "",
-    isHome : true,
-    isPost : false,
+    isHome : false,
+    isPost : true,
     lang   : 'default'
   };
 </script>
-<title>linuxholic's blog</title>
+<title>nginx-buffering | linuxholic's blog</title>
   
 
 
@@ -131,7 +136,7 @@
 
   <aside class="sidebar">
 
-    <div class="sidebar-inner sidebar-overview-active">
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
       <ul class="sidebar-nav">
         <li class="sidebar-nav-toc">
           Table of Contents
@@ -144,6 +149,7 @@
       <div class="sidebar-panel-container">
         <!--noindex-->
         <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#nginx-%E7%BC%93%E5%86%B2"><span class="nav-number">1.</span> <span class="nav-text">nginx 缓冲</span></a></li></ol></div>
         </div>
         <!--/noindex-->
 
@@ -189,16 +195,17 @@
 </noscript>
 
 
-    <div class="main-inner index posts-expand">
+    <div class="main-inner post posts-expand">
 
-    
+
+  
 
 
 <div class="post-block">
   
   
 
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="default">
     <link itemprop="mainEntityOfPage" href="http://linuxholic.github.io/2021/11/23/nginx-buffering/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -211,9 +218,9 @@
       <meta itemprop="name" content="linuxholic's blog">
     </span>
       <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2021/11/23/nginx-buffering/" class="post-title-link" itemprop="url">nginx-buffering</a>
-        </h2>
+        <h1 class="post-title" itemprop="name headline">
+          nginx-buffering
+        </h1>
 
         <div class="post-meta-container">
           <div class="post-meta">
@@ -237,7 +244,7 @@
     
     
     <div class="post-body" itemprop="articleBody">
-          <h2 id="nginx-缓冲"><a href="#nginx-缓冲" class="headerlink" title="nginx 缓冲"></a>nginx 缓冲</h2><p><a target="_blank" rel="noopener" href="http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_buffering">Module ngx_http_proxy_module</a></p>
+        <h2 id="nginx-缓冲"><a href="#nginx-缓冲" class="headerlink" title="nginx 缓冲"></a>nginx 缓冲</h2><p><a target="_blank" rel="noopener" href="http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_buffering">Module ngx_http_proxy_module</a></p>
 <p>nginx 转发 upstream 数据到 client，如果上下游网速不匹配，典型的，upstream 发送数据的速度，一般远大于 client 接收数据的速度，就会导致数据在 nginx 积压，我们可以通过配置指令</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">proxy_buffering on|off</span><br></pre></td></tr></table></figure>
 <p>选择性的开启或者关闭 nginx 对 upstream 数据的缓冲功能</p>
@@ -266,7 +273,6 @@
 <p>nginx 一般都是和 upstream 同机房部署，甚至同机部署，所以 nginx 和 upstream 的连接和通信都是走内网的，而 nginx 和客户端的连接，而需要经过公网传输，所以上下游的速度天然存在不匹配的情况，而且通常都是 upstream 远快于 client</p>
 </blockquote>
 
-      
     </div>
 
     
@@ -274,199 +280,25 @@
     
 
     <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
+          <div class="post-tags">
+              <a href="/tags/nginx/" rel="tag"># nginx</a>
+          </div>
 
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="http://linuxholic.github.io/2021/03/02/os-popen/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="linuxholic">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="linuxholic's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2021/03/02/os-popen/" class="post-title-link" itemprop="url">os-popen</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-
-      <time title="Created: 2021-03-02 15:31:21" itemprop="dateCreated datePublished" datetime="2021-03-02T15:31:21+08:00">2021-03-02</time>
-    </span>
-      <span class="post-meta-item">
-        <span class="post-meta-item-icon">
-          <i class="far fa-calendar-check"></i>
-        </span>
-        <span class="post-meta-item-text">Edited on</span>
-        <time title="Modified: 2021-03-05 10:07:42" itemprop="dateModified" datetime="2021-03-05T10:07:42+08:00">2021-03-05</time>
-      </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <h1 id="os-popen-的若干问题"><a href="#os-popen-的若干问题" class="headerlink" title="os.popen 的若干问题"></a>os.popen 的若干问题</h1><h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p><code>os.popen</code> 是 Python 标准库 <code>os</code> 的一个函数，一般用来在程序中 <strong>调用 <code>shell</code> 命令，并需要读取输出</strong> 时使用。</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">os.popen(command[, mode[, bufsize]])</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p><strong>Open a pipe</strong> to or from command. The return value is an open <strong>file object</strong> connected to the pipe, which can be read or written depending on whether mode is ‘r’ (default) or ‘w’. The bufsize argument has the same meaning as the corresponding argument to the built-in open() function. The exit status of the command (encoded in the format specified for wait()) is available as the return value of the close() method of the file object, except that when the exit status is zero (termination without errors), None is returned.</p>
-</blockquote>
-<p>理论上，除了读取输出，我们也可以写入，因为 <code>os.popen</code> 本质上是提供了一个管道，允许双向通信。</p>
-<h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><p>这个函数在 Python 2.6 之后已经被标记为 <a target="_blank" rel="noopener" href="https://docs.python.org/2.7/library/os.html#os.popen">deprecated</a>，但是因为 <strong>使用上的便利</strong>，还是有很多 Python 程序在需要调用 shell 命令时使用该函数。比如：</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">now = os.popen(<span class="string">&#x27;date&#x27;</span>).read()</span><br><span class="line"><span class="comment"># do something with @now ...</span></span><br></pre></td></tr></table></figure>
-<p>我们一般都只会关心 shell 命令的输出，也就是上述代码中的 <code>now</code>；</p>
-<p>容易掉坑的地方就在这里，我们忽略了对 <code>os.popen()</code> 返回值的处理！</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2021/03/02/os-popen/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
         
-      
-    </div>
 
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="http://linuxholic.github.io/2019/03/30/networking-perf/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="linuxholic">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="linuxholic's blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2019/03/30/networking-perf/" class="post-title-link" itemprop="url">networking-perf</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-
-      <time title="Created: 2019-03-30 16:43:29" itemprop="dateCreated datePublished" datetime="2019-03-30T16:43:29+08:00">2019-03-30</time>
-    </span>
-      <span class="post-meta-item">
-        <span class="post-meta-item-icon">
-          <i class="far fa-calendar-check"></i>
-        </span>
-        <span class="post-meta-item-text">Edited on</span>
-        <time title="Modified: 2021-03-05 10:07:42" itemprop="dateModified" datetime="2021-03-05T10:07:42+08:00">2021-03-05</time>
-      </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <h1 id="主题"><a href="#主题" class="headerlink" title="主题"></a>主题</h1><ul>
-<li>基于 linux 内核，机器是如何接受数据包的？</li>
-<li>数据包从网卡到应用层会经过若干个组件，如何针对性的进行监控和调优？</li>
-</ul>
-<h1 id="基本原则"><a href="#基本原则" class="headerlink" title="基本原则"></a>基本原则</h1><ul>
-<li>理论上，只需要在网络栈的各个层次监控 <strong>丢包率</strong>，就可以很快的定位系统当前的瓶颈；</li>
-<li>这个时候如果只是参考网上的一份”最优“ sysctl 配置，往往不能达到很好的效果；</li>
-<li>调优的前提是，我们需要有清晰的可监控指标来验证实际的效果。</li>
-</ul>
-<h1 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h1><p>数据包从抵达网卡开始，一路到达套接字的 receive buffer：</p>
-<ul>
-<li>驱动加载和初始化</li>
-<li>数据包到达网卡控制器(NIC)</li>
-<li>数据包被复制到内核空间（ DMA -&gt; ring buffer ）</li>
-<li>产生硬件中断，通知系统数据可读</li>
-<li>驱动调用 NAPI 激活 poll 循环（如果该循环处于休眠状态）</li>
-<li>ksoftirpd 调用驱动注册的 poll 函数，读取 ring buffer 中的数据包</li>
-<li>ring buffer 对应的内存区域被解除映射（ memory region unmapped ）</li>
-<li>数据包被封装为 <code>skb</code> 结构体，准备传递到上层协议栈</li>
-<li>如果开启网卡多队列，数据帧会被负载均衡到多个 CPU 进行处理</li>
-<li>数据帧经由队列，递交上层协议栈</li>
-<li>协议栈处理（ IP -&gt; UDP/TCP ）</li>
-<li>数据被填充到套接字的 receive buffer</li>
-</ul>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2019/03/30/networking-perf/#more" rel="contents">
-                Read more &raquo;
-              </a>
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2021/03/02/os-popen/" rel="prev" title="os-popen">
+                  <i class="fa fa-chevron-left"></i> os-popen
+                </a>
             </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
+            <div class="post-nav-item">
+            </div>
+          </div>
     </footer>
   </article>
 </div>
+
 
 
 

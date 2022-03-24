@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="default">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="3DzbNTXQSAElCpW5ej0bVwyAZlRcuPzBwC0_g2IMw7A">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.2/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@3.1.1/animate.min.css">
+
+<script class="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"linuxholic.github.io","root":"/","images":"/images","scheme":"Muse","version":"8.2.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}};
+  </script>
+<meta name="description" content="在一般的网络调优中，调整 TCP 协议栈的内存使用是比较常见的一种方式，可以在两个层次进行：  内核层 应用层  内核层内核层次对于 TCP 内存的使用主要涉及以下两类： man 7 tcp 123tcp_memtcp_rmemtcp_wmem 可以通过 sysctl 接口进行查看和更改： 123net.ipv4.tcp_mem &#x3D; 22152        29538   44304n">
+<meta property="og:type" content="article">
+<meta property="og:title" content="tcp-mem">
+<meta property="og:url" content="http://linuxholic.github.io/2022/03/24/tcp-mem/index.html">
+<meta property="og:site_name" content="linuxholic&#39;s blog">
+<meta property="og:description" content="在一般的网络调优中，调整 TCP 协议栈的内存使用是比较常见的一种方式，可以在两个层次进行：  内核层 应用层  内核层内核层次对于 TCP 内存的使用主要涉及以下两类： man 7 tcp 123tcp_memtcp_rmemtcp_wmem 可以通过 sysctl 接口进行查看和更改： 123net.ipv4.tcp_mem &#x3D; 22152        29538   44304n">
+<meta property="og:locale">
+<meta property="article:published_time" content="2022-03-24T02:20:06.000Z">
+<meta property="article:modified_time" content="2022-03-24T07:51:18.429Z">
+<meta property="article:author" content="linuxholic">
+<meta property="article:tag" content="tcp">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://linuxholic.github.io/2022/03/24/tcp-mem/">
+
+
+<script class="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'default'
+  };
+</script>
+<title>tcp-mem | linuxholic's blog</title>
+  
+
+
+
+
+  <noscript>
+  <style>
+  body { margin-top: 2rem; }
+
+  .use-motion .menu-item,
+  .use-motion .sidebar,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header {
+    visibility: visible;
+  }
+
+  .use-motion .header,
+  .use-motion .site-brand-container .toggle,
+  .use-motion .footer { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle,
+  .use-motion .custom-logo-image {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line {
+    transform: scaleX(1);
+  }
+
+  .search-pop-overlay, .sidebar-nav { display: none; }
+  .sidebar-panel { display: block; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">linuxholic's blog</h1>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%86%85%E6%A0%B8%E5%B1%82"><span class="nav-number">1.</span> <span class="nav-text">内核层</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#tcp-mem"><span class="nav-number">1.1.</span> <span class="nav-text">tcp_mem</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#tcp-rmem"><span class="nav-number">1.2.</span> <span class="nav-text">tcp_rmem</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#tcp-wmem"><span class="nav-number">1.3.</span> <span class="nav-text">tcp_wmem</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#rmem-default"><span class="nav-number">1.4.</span> <span class="nav-text">rmem_default</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#rmem-max"><span class="nav-number">1.5.</span> <span class="nav-text">rmem_max</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#wmem-default"><span class="nav-number">1.6.</span> <span class="nav-text">wmem_default</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#wmem-max"><span class="nav-number">1.7.</span> <span class="nav-text">wmem_max</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BA%94%E7%94%A8%E5%B1%82"><span class="nav-number">2.</span> <span class="nav-text">应用层</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">3.</span> <span class="nav-text">总结</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%9B%91%E6%8E%A7"><span class="nav-number">4.</span> <span class="nav-text">监控</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">linuxholic</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives">
+          <span class="site-state-item-count">4</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+
+
+
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="back-to-top" role="button">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="default">
+    <link itemprop="mainEntityOfPage" href="http://linuxholic.github.io/2022/03/24/tcp-mem/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="linuxholic">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="linuxholic's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          tcp-mem
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2022-03-24 10:20:06 / Modified: 15:51:18" itemprop="dateCreated datePublished" datetime="2022-03-24T10:20:06+08:00">2022-03-24</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <p>在一般的网络调优中，调整 TCP 协议栈的内存使用是比较常见的一种方式，可以在两个层次进行：</p>
+<ul>
+<li>内核层</li>
+<li>应用层</li>
+</ul>
+<h3 id="内核层"><a href="#内核层" class="headerlink" title="内核层"></a>内核层</h3><p>内核层次对于 TCP 内存的使用主要涉及以下两类：</p>
+<p><a target="_blank" rel="noopener" href="https://man7.org/linux/man-pages/man7/tcp.7.html">man 7 tcp</a></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">tcp_mem</span><br><span class="line">tcp_rmem</span><br><span class="line">tcp_wmem</span><br></pre></td></tr></table></figure>
+<p>可以通过 <code>sysctl</code> 接口进行查看和更改：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">net.ipv4.tcp_mem &#x3D; 22152        29538   44304</span><br><span class="line">net.ipv4.tcp_rmem &#x3D; 4096        131072  6291456</span><br><span class="line">net.ipv4.tcp_wmem &#x3D; 4096        16384   4194304</span><br></pre></td></tr></table></figure>
+<span id="more"></span>
+<h4 id="tcp-mem"><a href="#tcp-mem" class="headerlink" title="tcp_mem"></a>tcp_mem</h4><p>整个机器层面，TCP 协议栈占用的总内存限制，以内存 page 作为统计单位：</p>
+<ul>
+<li>low：TCP 协议栈内存总量低于这个阈值，则 TCP 不主动对自身内存分配进行限制；</li>
+<li>pressure：一旦高于这个阈值，TCP 开始节制自身的内存分配行为（进入 memory pressure 状态），直至降至 low 以下；</li>
+<li>high：针对 TCP 协议栈的终极限制，其他任何规则都不允许超过这个限制。</li>
+</ul>
+<h4 id="tcp-rmem"><a href="#tcp-rmem" class="headerlink" title="tcp_rmem"></a>tcp_rmem</h4><p>限制 TCP 单个 receive buffer 的大小，以下取值限制 TCP 动态调整 buffer size 的范围：</p>
+<ul>
+<li>min：只在 TCP 协议栈进入 memory pressure 模式时生效，只允许低于这个值的内存分配行为；</li>
+<li>default：默认大小，这里的取值会覆盖 net.core.rmem_default 的取值，作为 socket receive buffer 的最终默认取值</li>
+<li>max：动态调整的 buffer 最大值</li>
+</ul>
+<h4 id="tcp-wmem"><a href="#tcp-wmem" class="headerlink" title="tcp_wmem"></a>tcp_wmem</h4><p>和 <code>tcp_rmem</code> 雷同</p>
+<p><a target="_blank" rel="noopener" href="https://man7.org/linux/man-pages/man7/socket.7.html">man 7 socket</a></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">rmem_default</span><br><span class="line">rmem_max</span><br><span class="line">wmem_default</span><br><span class="line">wmem_max</span><br></pre></td></tr></table></figure>
+<p>可以通过 <code>sysctl</code> 接口进行查看和更改：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">net.core.rmem_default &#x3D; 212992</span><br><span class="line">net.core.rmem_max &#x3D; 212992</span><br><span class="line">net.core.wmem_default &#x3D; 212992</span><br><span class="line">net.core.wmem_max &#x3D; 212992</span><br></pre></td></tr></table></figure>
+<h4 id="rmem-default"><a href="#rmem-default" class="headerlink" title="rmem_default"></a>rmem_default</h4><p>socket receive buffer 的默认大小，可能会被 tcm_rmem 中的第二个 defalut 值覆盖</p>
+<h4 id="rmem-max"><a href="#rmem-max" class="headerlink" title="rmem_max"></a>rmem_max</h4><p>限制应用层可以手动设置的最大 receive buffer 大小，即通过 <code>setsockopt(2)</code> 的 SO_RCVBUF 选项进行设置的最大允许值。</p>
+<h4 id="wmem-default"><a href="#wmem-default" class="headerlink" title="wmem_default"></a>wmem_default</h4><p>socket write buffer 的默认大小，可能会被 tcm_wmem 中的第二个 defalut 值覆盖</p>
+<h4 id="wmem-max"><a href="#wmem-max" class="headerlink" title="wmem_max"></a>wmem_max</h4><p>限制应用层可以手动设置的最大 write buffer 大小，即通过 <code>setsockopt(2)</code> 的 SO_SNDBUF 选项进行设置时的最大允许值。</p>
+<h3 id="应用层"><a href="#应用层" class="headerlink" title="应用层"></a>应用层</h3><p>针对每个 socket 都可以手动设置其 buffer 大小：</p>
+<ul>
+<li>receive buffer：<code>setsockopt(2)</code> 的 SO_RCVBUF 选项</li>
+<li>write buffer：<code>setsockopt(2)</code> 的 SO_SNDBUF 选项</li>
+</ul>
+<p>一般来说，为了最大化网络吞吐，普遍倾向于增加 socket buffer 的大小。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>基于上述分析，可以发现，针对 socket buffer 的调整方式只有两种：手动和自动</p>
+<ul>
+<li>手动：在应用层代码中，通过 setsockopt 系统调用进行设置；</li>
+<li>自动：通过 sysctl 配置内核层参数，从而影响 TCP 协议栈的自动调整策略。</li>
+</ul>
+<p>一旦在应用层进行了手动设置，那么 socket buffer 的大小就是固定的了，不再受到内核 TCP 协议栈自动调整的控制。</p>
+<h3 id="监控"><a href="#监控" class="headerlink" title="监控"></a>监控</h3><p>对于机器层面来说，TCP 协议栈的内存使用可能会过载，这个时候可以通过 <code>/proc/net/netstat</code> 进行监控</p>
+<ul>
+<li><code>TCPMemoryPressures</code>: 表示 TCP 协议栈进入 memory pressure 状态的次数</li>
+</ul>
+<p>一旦发现这个指标出现持续性的增长，说明 TCP 协议栈的缓冲能力已经见顶，可能导致一定程度的丢包，那么下面这个指标：</p>
+<ul>
+<li><code>PruneCalled</code>: 表示应用层 socket buffer 满，数据包被 TCP 协议栈丢弃的次数</li>
+</ul>
+<p>也会开始同步增大，这里的丢包极有可能进一步引发其他业务层面的问题。</p>
+<p>结合前述的分析，我们可以适当调整 tcp_mem 的 pressure 取值，一定程度上可以缓解 TCP 协议栈的丢包情况。</p>
+<p>PS：TCP 协议栈的缓冲能力过载，根本原因还是整个数据链路的处理存在瓶颈，需要精确定位并解决，否则针对 tcp_mem 的调整只能是治标不治本，就算调再大，也会有被填满的时候。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/tcp/" rel="tag"># tcp</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2021/11/23/nginx-buffering/" rel="prev" title="nginx-buffering">
+                  <i class="fa fa-chevron-left"></i> nginx-buffering
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      const activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      const commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">linuxholic</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/schemes/muse.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

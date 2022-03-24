@@ -2,6 +2,13 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://linuxholic.github.io/2022/03/24/tcp-mem/</loc>
+    
+    <lastmod>2022-03-24T07:51:18.429Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>http://linuxholic.github.io/2021/11/23/nginx-buffering/</loc>
     
     <lastmod>2021-11-23T12:54:16.253Z</lastmod>

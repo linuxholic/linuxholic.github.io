@@ -1,7 +1,8 @@
 ---
 title: nginx-buffering
 date: 2021-11-23 20:37:06
-tags: nginx
+tags:
+    - nginx
 ---
 
 ## nginx 缓冲

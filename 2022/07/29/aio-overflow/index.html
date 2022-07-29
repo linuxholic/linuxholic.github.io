@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="default">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="3DzbNTXQSAElCpW5ej0bVwyAZlRcuPzBwC0_g2IMw7A">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.2/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@3.1.1/animate.min.css">
+
+<script class="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"linuxholic.github.io","root":"/","images":"/images","scheme":"Muse","version":"8.2.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}};
+  </script>
+<meta name="description" content="起因在使用 linux kernel aio 接口的过程中，发现一个诡异的问题：如果单次 aio 请求的数据大小超过了某一个阈值，kernel aio 就总是处理失败：不管请求数据多大，aio 返回的结果一直都是 2147479552 ！ AIO一般情况下我们使用的 IO 接口都是同步类型的，这样的接口会同步阻塞调用程序，直到底层数据准备好，才会返回。比如调用 read 函数读取磁盘文件的数据，因">
+<meta property="og:type" content="article">
+<meta property="og:title" content="aio-overflow">
+<meta property="og:url" content="http://linuxholic.github.io/2022/07/29/aio-overflow/index.html">
+<meta property="og:site_name" content="linuxholic&#39;s blog">
+<meta property="og:description" content="起因在使用 linux kernel aio 接口的过程中，发现一个诡异的问题：如果单次 aio 请求的数据大小超过了某一个阈值，kernel aio 就总是处理失败：不管请求数据多大，aio 返回的结果一直都是 2147479552 ！ AIO一般情况下我们使用的 IO 接口都是同步类型的，这样的接口会同步阻塞调用程序，直到底层数据准备好，才会返回。比如调用 read 函数读取磁盘文件的数据，因">
+<meta property="og:locale">
+<meta property="article:published_time" content="2022-07-29T01:40:58.000Z">
+<meta property="article:modified_time" content="2022-07-29T02:11:03.783Z">
+<meta property="article:author" content="linuxholic">
+<meta property="article:tag" content="kernel">
+<meta property="article:tag" content="aio">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://linuxholic.github.io/2022/07/29/aio-overflow/">
+
+
+<script class="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'default'
+  };
+</script>
+<title>aio-overflow | linuxholic's blog</title>
+  
+
+
+
+
+  <noscript>
+  <style>
+  body { margin-top: 2rem; }
+
+  .use-motion .menu-item,
+  .use-motion .sidebar,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header {
+    visibility: visible;
+  }
+
+  .use-motion .header,
+  .use-motion .site-brand-container .toggle,
+  .use-motion .footer { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle,
+  .use-motion .custom-logo-image {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line {
+    transform: scaleX(1);
+  }
+
+  .search-pop-overlay, .sidebar-nav { display: none; }
+  .sidebar-panel { display: block; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">linuxholic's blog</h1>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E8%B5%B7%E5%9B%A0"><span class="nav-number">1.</span> <span class="nav-text">起因</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#AIO"><span class="nav-number">2.</span> <span class="nav-text">AIO</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#POSIX-AIO"><span class="nav-number">2.1.</span> <span class="nav-text">POSIX AIO</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#kernel-AIO"><span class="nav-number">2.2.</span> <span class="nav-text">kernel AIO</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%8E%B0%E8%B1%A1"><span class="nav-number">3.</span> <span class="nav-text">现象</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%AF%E8%83%BD%E7%9A%84%E5%8E%9F%E5%9B%A0"><span class="nav-number">3.1.</span> <span class="nav-text">可能的原因</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#MAX-RW-COUNT"><span class="nav-number">4.</span> <span class="nav-text">MAX_RW_COUNT</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="nav-number">5.</span> <span class="nav-text">解决方案</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#vector-IO"><span class="nav-number">5.1.</span> <span class="nav-text">vector IO</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%93%BE%E5%BC%8F%E5%9B%9E%E8%B0%83%EF%BC%9Achained-callback"><span class="nav-number">5.2.</span> <span class="nav-text">链式回调：chained callback</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#wrap-up"><span class="nav-number">6.</span> <span class="nav-text">wrap up</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">linuxholic</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives">
+          <span class="site-state-item-count">5</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">6</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+
+
+
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="back-to-top" role="button">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="default">
+    <link itemprop="mainEntityOfPage" href="http://linuxholic.github.io/2022/07/29/aio-overflow/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="linuxholic">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="linuxholic's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          aio-overflow
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2022-07-29 09:40:58 / Modified: 10:11:03" itemprop="dateCreated datePublished" datetime="2022-07-29T09:40:58+08:00">2022-07-29</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <h1 id="起因"><a href="#起因" class="headerlink" title="起因"></a>起因</h1><p>在使用 linux kernel aio 接口的过程中，发现一个诡异的问题：如果单次 aio 请求的数据大小超过了某一个阈值，kernel aio 就总是处理失败：不管请求数据多大，aio 返回的结果一直都是 2147479552 ！</p>
+<h1 id="AIO"><a href="#AIO" class="headerlink" title="AIO"></a>AIO</h1><p>一般情况下我们使用的 IO 接口都是同步类型的，这样的接口会同步阻塞调用程序，直到底层数据准备好，才会返回。比如调用 read 函数读取磁盘文件的数据，因为涉及到数据从物理磁盘传输到内存，这个过程一般耗时在毫秒级别，期间调用程序无事可做，就会被 OS 阻塞挂起，等待直到数据读取完成之后，read 函数返回，控制权才会重新回到调用程序。</p>
+<p>AIO 则是采用异步的方式，发起 IO 请求之后不再阻塞，而是立即返回，这样调用程序就可以在 IO 执行期间做更多的其他事情，从而实现并行，提升处理效率。</p>
+<p>具体来说，在 linux 上实现 AIO 主要有两种方式：Posix 和 kernel</p>
+<span id="more"></span>
+<h2 id="POSIX-AIO"><a href="#POSIX-AIO" class="headerlink" title="POSIX AIO"></a>POSIX AIO</h2><p>posix 方式通过 libc 实现，内部通过 thread pool 将同步的 IO 请求转为后台线程的操作，并在合适的时候通知业务线程，从而实现异步的效果。可以看出，这种方式完全在用户态实现，不需要内核的配合，存在很多局限性，比如多线程操作的并发问题，数据共享问题，等等。</p>
+<h2 id="kernel-AIO"><a href="#kernel-AIO" class="headerlink" title="kernel AIO"></a>kernel AIO</h2><p>相反，直接在内核态实现 AIO 可以实现更高的效率，并简化用户态的实现。相应的，AIO 额外增加了若干系统调用接口，核心是这两个：</p>
+<ul>
+<li><code>io_submit</code></li>
+<li><code>io_getevents</code></li>
+</ul>
+<p>一个用来提交 aio 请求，一个用来获取 aio 结果。</p>
+<p>单个 aio 请求用如下结构体表示(<code>man io_submit</code>)：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/aio_abi.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">iocb</span> &#123;</span></span><br><span class="line">   __u64   aio_data;</span><br><span class="line">   <span class="function">__u32   <span class="title">PADDED</span><span class="params">(aio_key, aio_rw_flags)</span></span>;</span><br><span class="line">   __u16   aio_lio_opcode;</span><br><span class="line">   __s16   aio_reqprio;</span><br><span class="line">   __u32   aio_fildes;</span><br><span class="line">   __u64   aio_buf;</span><br><span class="line">   __u64   aio_nbytes;</span><br><span class="line">   __s64   aio_offset;</span><br><span class="line">   __u64   aio_reserved2;</span><br><span class="line">   __u32   aio_flags;</span><br><span class="line">   __u32   aio_resfd;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/latest/source/include/uapi/linux/aio_abi.h#L73">struct iocb</a> 结构体中的 <code>aio_nbytes</code> 成员用来表示请求大小</p>
+<p>表示单个 aio 请求结果的结构体如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* read() from /dev/aio returns these structures. */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">io_event</span> &#123;</span></span><br><span class="line">    __u64       data;       <span class="comment">/* the data field from the iocb */</span></span><br><span class="line">    __u64       obj;        <span class="comment">/* what iocb this event came from */</span></span><br><span class="line">    __s64       res;        <span class="comment">/* result code for this event */</span></span><br><span class="line">    __s64       res2;       <span class="comment">/* secondary result */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/latest/source/include/uapi/linux/aio_abi.h#L60">struct io_event</a> 结构体中的 <code>res</code> 一般用来表示 aio 请求的结果</p>
+<ul>
+<li><code>res &gt; 0</code> 表示 aio 请求成功的字节数</li>
+<li><code>res &lt; 0</code> 表示 aio 请求失败的错误码</li>
+</ul>
+<p>所以，我们就可以通过提交的 <code>aio_nbytes</code> 和获取结果的 <code>res</code> 对比，来判断 aio 请求是否完整。</p>
+<h1 id="现象"><a href="#现象" class="headerlink" title="现象"></a>现象</h1><p>当通过 AIO 请求的数据大小超过 2G 左右时，请求大小和结果大小就开始发生不匹配的情况，并且结果大小永远都是 2147479552。</p>
+<h2 id="可能的原因"><a href="#可能的原因" class="headerlink" title="可能的原因"></a>可能的原因</h2><p>第一个可疑点是 <a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Integer_overflow">整数溢出</a>，因为 2G 左右刚好和 int max 接近：</p>
+<table>
+<thead>
+<tr>
+<th>缩写</th>
+<th>数值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2G</td>
+<td>2147483648</td>
+</tr>
+<tr>
+<td>int max</td>
+<td>2147483647</td>
+</tr>
+<tr>
+<td>aio magic</td>
+<td>2147479552</td>
+</tr>
+</tbody>
+</table>
+<p>但是一通检查下来，程序内部都是使用的 <code>int64_t</code> 表示，足以容纳远大于 2G 的大小，不可能发生溢出的情况。</p>
+<p>整数溢出还有第二种途径：乘法或者加法。比如两个 int32 相乘，预期得到一个 int64 的结果：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">a = b * c</span><br></pre></td></tr></table></figure>
+<p>其中 b 和 c 都是 32 位整型，a 是 64 位整型，直觉来看，用来保存结果的 a 足够大，应该没问题；事实上是，<code>b*c</code> 的中间结果使用了 int32 存储，就导致了整数溢出，最终 a 也就不会是正确的乘积。应用程序之前倒是有过这样的 bug，不过早已经修复了，最新的代码检查之后，也并没有发现类似可能的 bug。</p>
+<p>排除了第一个可疑点之后，开始怀疑这是系统级别本身的限制，而不是应用程序的问题了；也考虑到 2147479552 虽然和 2147483647 接近，但是毕竟不相等：</p>
+<table>
+<thead>
+<tr>
+<th>number</th>
+<th>binary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2147483647</td>
+<td>0b1111111111111111111111111111111</td>
+</tr>
+<tr>
+<td>2147479552</td>
+<td>0b1111111111111111111000000000000</td>
+</tr>
+</tbody>
+</table>
+<p>那就需要重点排查系统层面限制的可能了。</p>
+<h1 id="MAX-RW-COUNT"><a href="#MAX-RW-COUNT" class="headerlink" title="MAX_RW_COUNT"></a><code>MAX_RW_COUNT</code></h1><p>作为面向 google 编程的程序员，直接搜索 2147479552，果然找到了<a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/70368651/why-cant-linux-write-more-than-2147479552-bytes">线索</a>。内核限制了单次 read 或者 write 的最大数据范围：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> MAX_RW_COUNT (INT_MAX &amp; PAGE_MASK)</span></span><br></pre></td></tr></table></figure>
+<p>这个<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/latest/source/include/linux/fs.h#L2493">限制值</a>刚好就是 2147479552，这个限制也可以在 <code>man read</code> 或者 <code>man write</code> 手册页中找到。</p>
+<blockquote>
+<p> On Linux, read() (and similar system calls) will transfer at most 0x7ffff000 (2,147,479,552) bytes, returning the number of bytes actually transferred.  (This is true on both 32-bit and 64-bit systems.)</p>
+</blockquote>
+<p>也就是说，内核对于超过这个限制的 IO 请求大小，会<strong>静默截断</strong>到这个限制值，而不会有任何错误标识！内核的逻辑是，单次 IO 本来就存在 partial write 或者 partial read 的情况，应用层应该通过检查实际的返回值来判断，读写是否完整；如果只有部分成功，应用层需要负责进行重试。</p>
+<p>到这里为止，那应该就是应用程序的 bug 了，没有妥善处理 partial read 或者 write 的情况。但还有个问题是，应用程序用到的是 kernel AIO 接口，而不是上述普通的读写接口；也就是说，read 和 write 系统调用确实存在上述限制，但是我们没有用到这两个接口呀 (╯‵□′)╯︵┻━┻</p>
+<p>不过有了这个抓手，还是可以顺藤摸瓜的，我们有理由怀疑 AIO 的内核实现中也极有可能存在类似的限制，<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/latest/source/fs/aio.c#L1541">果不其然</a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * fs/aio.c 中的 aio_read() 函数，顾名思义，负责 AIO read 操作，涉及的调用链如下：</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> *     aio_read() -&gt; aio_setup_rw() -&gt; import_single_range()</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">import_single_range</span><span class="params">(<span class="keyword">int</span> rw, <span class="keyword">void</span> __user *buf, <span class="keyword">size_t</span> len,</span></span></span><br><span class="line"><span class="function"><span class="params">         struct iovec *iov, struct iov_iter *i)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (len &gt; MAX_RW_COUNT)</span><br><span class="line">        len = MAX_RW_COUNT;</span><br><span class="line">    <span class="keyword">if</span> (unlikely(!access_ok(buf, len)))</span><br><span class="line">        <span class="keyword">return</span> -EFAULT;</span><br><span class="line"></span><br><span class="line">    iov-&gt;iov_base = buf;</span><br><span class="line">    iov-&gt;iov_len = len;</span><br><span class="line">    iov_iter_init(i, rw, iov, <span class="number">1</span>, len);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>AIO 读写路径中，也限制了最大数据范围，所以这就终于解释了我们开头遇到的那个问题。</p>
+<h1 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h1><p>搞清楚了问题根因，接下来就需要看下如何解决了。既然 <code>MAX_RW_COUNT</code> 是针对单次读写的限制，那么想当然的，我们可以考虑拆分过大的单次 IO 为多次的小份 IO，从而绕过内核的这个限制。</p>
+<h2 id="vector-IO"><a href="#vector-IO" class="headerlink" title="vector IO"></a>vector IO</h2><p>第一种方式，直接利用系统提供的 vector IO 能力，将多个子 IO 请求封装在多个结构体中，然后通过 vector 的方式一次性提交即可。</p>
+<blockquote>
+<p><a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Vectored_I/O">Vectored I/O
+</a> 也叫做 scatter/gather I/O，可以方便的一次性提交涉及多个位置的 IO 请求。</p>
+</blockquote>
+<p>吊诡的是，AIO 手册页中并没有说明如何使用 vectored IO，但是我们可以在 <a target="_blank" rel="noopener" href="https://pagure.io/libaio/blob/master/f/src/libaio.h#_200">libaio</a> 的封装库中找到其用法</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keyword">void</span> <span class="title">io_prep_preadv</span><span class="params">(struct iocb *iocb, <span class="keyword">int</span> fd, <span class="keyword">const</span> struct iovec *iov, <span class="keyword">int</span> iovcnt, <span class="keyword">long</span> <span class="keyword">long</span> offset)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">memset</span>(iocb, <span class="number">0</span>, <span class="keyword">sizeof</span>(*iocb));</span><br><span class="line">    iocb-&gt;aio_fildes = fd;</span><br><span class="line">    iocb-&gt;aio_lio_opcode = IO_CMD_PREADV;</span><br><span class="line">    iocb-&gt;aio_reqprio = <span class="number">0</span>;</span><br><span class="line">    iocb-&gt;u.c.buf = (<span class="keyword">void</span> *)iov;</span><br><span class="line">    iocb-&gt;u.c.nbytes = iovcnt;</span><br><span class="line">    iocb-&gt;u.c.offset = offset;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>换句话说，赋予了之前两个字段不同的含义：</p>
+<ul>
+<li><code>buf</code>：之前表示用户内存空间地址，现在表示 vector array 的地址</li>
+<li><code>nbytes</code>：之前表示 IO 请求大小，现在表示 vector array 的长度（包含多少个子请求）</li>
+</ul>
+<p>撸起袖子就干，改造代码使用 AIO vector 方式重新提交请求，结果，还是翻车了 (╯‵□′)╯︵┻━┻</p>
+<p>继续查看内核代码中 vector IO 相关的逻辑实现，才发现竟然也有类似的限制</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> *  调用路径：aio_read() -&gt; aio_setup_rw() -&gt; __import_iovec()</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">ssize_t</span> __import_iovec(<span class="keyword">int</span> type, <span class="keyword">const</span> struct iovec __user *uvec,</span><br><span class="line">         <span class="keyword">unsigned</span> nr_segs, <span class="keyword">unsigned</span> fast_segs, struct iovec **iovp,</span><br><span class="line">         struct iov_iter *i, <span class="keyword">bool</span> compat)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">/* 省略一些无关代码 */</span></span><br><span class="line">    <span class="keyword">for</span> (seg = <span class="number">0</span>; seg &lt; nr_segs; seg++) &#123;</span><br><span class="line">        <span class="keyword">ssize_t</span> len = (<span class="keyword">ssize_t</span>)iov[seg].iov_len;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (!access_ok(iov[seg].iov_base, len)) &#123;</span><br><span class="line">            <span class="keyword">if</span> (iov != *iovp)</span><br><span class="line">                kfree(iov);</span><br><span class="line">            *iovp = <span class="literal">NULL</span>;</span><br><span class="line">            <span class="keyword">return</span> -EFAULT;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (len &gt; MAX_RW_COUNT - total_len) &#123;</span><br><span class="line">            len = MAX_RW_COUNT - total_len;</span><br><span class="line">            iov[seg].iov_len = len;</span><br><span class="line">        &#125;</span><br><span class="line">        total_len += len;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/* 省略一些无关代码 */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在 <code>aio_setup_rw()</code> <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/latest/source/fs/aio.c#L1505">函数</a> 中，会根据用户提交的 AIO 请求类型，是否为 vectored 方式，调用两个不同的函数：</p>
+<ul>
+<li><code>import_single_range()</code></li>
+<li><code>__import_iovec()</code></li>
+</ul>
+<p>虽然是不同的代码路径，但是都加上了 <code>MAX_RW_COUNT</code> 的限制，并且 vectored 方式下是针对<strong>所有子请求加和</strong>进行限制的，而不是针对单个子请求的限制。</p>
+<h2 id="链式回调：chained-callback"><a href="#链式回调：chained-callback" class="headerlink" title="链式回调：chained callback"></a>链式回调：chained callback</h2><p>既然并行的拆分无法奏效，那就只能采取串行的方式了。也就是，在每次完成 <code>MAX_RW_COUNT</code> 数量的 IO 请求之后，针对剩余数据再次发起 IO 请求，直到所有期望数据全部完成（或者碰到失败）为止。这种方式相对同步阻塞的 read 或者 write 而言，相对复杂一些，因为需要在前后 callback 之间记住一些信息：</p>
+<ul>
+<li>预期数据量大小</li>
+<li>已完成数据量大小</li>
+<li>剩余数据量大小</li>
+</ul>
+<p>等等；而同步读写接口，只需要在一个 loop 中循环重试即可。</p>
+<h1 id="wrap-up"><a href="#wrap-up" class="headerlink" title="wrap up"></a>wrap up</h1><p>针对开头提到的问题，其实如果对 syscall 手册页足够熟悉的话，或者很熟悉 kernel IO subsystem，应该可以很快地意识到 2147479552 这个 magic number 的特殊含义所在，也就不用在其他方向上花费太多时间排查了。</p>
+<p>2147479552, good luck!</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/kernel/" rel="tag"># kernel</a>
+              <a href="/tags/aio/" rel="tag"># aio</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2022/03/24/tcp-mem/" rel="prev" title="tcp-mem">
+                  <i class="fa fa-chevron-left"></i> tcp-mem
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      const activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      const commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">linuxholic</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/schemes/muse.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

@@ -156,12 +156,12 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
           <a href="/archives">
-          <span class="site-state-item-count">4</span>
+          <span class="site-state-item-count">5</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-tags">
-        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-count">6</span>
         <span class="site-state-item-name">tags</span>
       </div>
   </nav>
@@ -199,6 +199,81 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://linuxholic.github.io/2022/07/29/aio-overflow/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="linuxholic">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="linuxholic's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2022/07/29/aio-overflow/" class="post-title-link" itemprop="url">aio-overflow</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2022-07-29 09:40:58 / Modified: 10:11:03" itemprop="dateCreated datePublished" datetime="2022-07-29T09:40:58+08:00">2022-07-29</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h1 id="起因"><a href="#起因" class="headerlink" title="起因"></a>起因</h1><p>在使用 linux kernel aio 接口的过程中，发现一个诡异的问题：如果单次 aio 请求的数据大小超过了某一个阈值，kernel aio 就总是处理失败：不管请求数据多大，aio 返回的结果一直都是 2147479552 ！</p>
+<h1 id="AIO"><a href="#AIO" class="headerlink" title="AIO"></a>AIO</h1><p>一般情况下我们使用的 IO 接口都是同步类型的，这样的接口会同步阻塞调用程序，直到底层数据准备好，才会返回。比如调用 read 函数读取磁盘文件的数据，因为涉及到数据从物理磁盘传输到内存，这个过程一般耗时在毫秒级别，期间调用程序无事可做，就会被 OS 阻塞挂起，等待直到数据读取完成之后，read 函数返回，控制权才会重新回到调用程序。</p>
+<p>AIO 则是采用异步的方式，发起 IO 请求之后不再阻塞，而是立即返回，这样调用程序就可以在 IO 执行期间做更多的其他事情，从而实现并行，提升处理效率。</p>
+<p>具体来说，在 linux 上实现 AIO 主要有两种方式：Posix 和 kernel</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2022/07/29/aio-overflow/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
     <link itemprop="mainEntityOfPage" href="http://linuxholic.github.io/2022/03/24/tcp-mem/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -222,10 +297,16 @@
         <i class="far fa-calendar"></i>
       </span>
       <span class="post-meta-item-text">Posted on</span>
-      
 
-      <time title="Created: 2022-03-24 10:20:06 / Modified: 15:51:18" itemprop="dateCreated datePublished" datetime="2022-03-24T10:20:06+08:00">2022-03-24</time>
+      <time title="Created: 2022-03-24 10:20:06" itemprop="dateCreated datePublished" datetime="2022-03-24T10:20:06+08:00">2022-03-24</time>
     </span>
+      <span class="post-meta-item">
+        <span class="post-meta-item-icon">
+          <i class="far fa-calendar-check"></i>
+        </span>
+        <span class="post-meta-item-text">Edited on</span>
+        <time title="Modified: 2022-07-29 09:53:33" itemprop="dateModified" datetime="2022-07-29T09:53:33+08:00">2022-07-29</time>
+      </span>
 
   
 </div>
@@ -303,10 +384,16 @@
         <i class="far fa-calendar"></i>
       </span>
       <span class="post-meta-item-text">Posted on</span>
-      
 
-      <time title="Created: 2021-11-23 20:37:06 / Modified: 20:54:16" itemprop="dateCreated datePublished" datetime="2021-11-23T20:37:06+08:00">2021-11-23</time>
+      <time title="Created: 2021-11-23 20:37:06" itemprop="dateCreated datePublished" datetime="2021-11-23T20:37:06+08:00">2021-11-23</time>
     </span>
+      <span class="post-meta-item">
+        <span class="post-meta-item-icon">
+          <i class="far fa-calendar-check"></i>
+        </span>
+        <span class="post-meta-item-text">Edited on</span>
+        <time title="Modified: 2022-07-29 09:53:09" itemprop="dateModified" datetime="2022-07-29T09:53:09+08:00">2022-07-29</time>
+      </span>
 
   
 </div>
@@ -389,7 +476,7 @@
           <i class="far fa-calendar-check"></i>
         </span>
         <span class="post-meta-item-text">Edited on</span>
-        <time title="Modified: 2021-03-05 10:07:42" itemprop="dateModified" datetime="2021-03-05T10:07:42+08:00">2021-03-05</time>
+        <time title="Modified: 2022-07-29 09:53:22" itemprop="dateModified" datetime="2022-07-29T09:53:22+08:00">2022-07-29</time>
       </span>
 
   
@@ -476,7 +563,7 @@
           <i class="far fa-calendar-check"></i>
         </span>
         <span class="post-meta-item-text">Edited on</span>
-        <time title="Modified: 2021-03-05 10:07:42" itemprop="dateModified" datetime="2021-03-05T10:07:42+08:00">2021-03-05</time>
+        <time title="Modified: 2022-07-29 09:51:26" itemprop="dateModified" datetime="2022-07-29T09:51:26+08:00">2022-07-29</time>
       </span>
 
   

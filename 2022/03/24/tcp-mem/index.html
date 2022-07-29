@@ -32,7 +32,7 @@
 <meta property="og:description" content="在一般的网络调优中，调整 TCP 协议栈的内存使用是比较常见的一种方式，可以在两个层次进行：  内核层 应用层  内核层内核层次对于 TCP 内存的使用主要涉及以下两类： man 7 tcp 123tcp_memtcp_rmemtcp_wmem 可以通过 sysctl 接口进行查看和更改： 123net.ipv4.tcp_mem &#x3D; 22152        29538   44304n">
 <meta property="og:locale">
 <meta property="article:published_time" content="2022-03-24T02:20:06.000Z">
-<meta property="article:modified_time" content="2022-03-24T07:51:18.429Z">
+<meta property="article:modified_time" content="2022-07-29T01:53:33.261Z">
 <meta property="article:author" content="linuxholic">
 <meta property="article:tag" content="tcp">
 <meta name="twitter:card" content="summary">
@@ -162,12 +162,12 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
           <a href="/archives">
-          <span class="site-state-item-count">4</span>
+          <span class="site-state-item-count">5</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-tags">
-        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-count">6</span>
         <span class="site-state-item-name">tags</span>
       </div>
   </nav>
@@ -229,10 +229,16 @@
         <i class="far fa-calendar"></i>
       </span>
       <span class="post-meta-item-text">Posted on</span>
-      
 
-      <time title="Created: 2022-03-24 10:20:06 / Modified: 15:51:18" itemprop="dateCreated datePublished" datetime="2022-03-24T10:20:06+08:00">2022-03-24</time>
+      <time title="Created: 2022-03-24 10:20:06" itemprop="dateCreated datePublished" datetime="2022-03-24T10:20:06+08:00">2022-03-24</time>
     </span>
+      <span class="post-meta-item">
+        <span class="post-meta-item-icon">
+          <i class="far fa-calendar-check"></i>
+        </span>
+        <span class="post-meta-item-text">Edited on</span>
+        <time title="Modified: 2022-07-29 09:53:33" itemprop="dateModified" datetime="2022-07-29T09:53:33+08:00">2022-07-29</time>
+      </span>
 
   
 </div>
@@ -320,6 +326,9 @@
                 </a>
             </div>
             <div class="post-nav-item">
+                <a href="/2022/07/29/aio-overflow/" rel="next" title="aio-overflow">
+                  aio-overflow <i class="fa fa-chevron-right"></i>
+                </a>
             </div>
           </div>
     </footer>

@@ -156,12 +156,12 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
           <a href="/archives">
-          <span class="site-state-item-count">5</span>
+          <span class="site-state-item-count">6</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-tags">
-        <span class="site-state-item-count">6</span>
+        <span class="site-state-item-count">7</span>
         <span class="site-state-item-name">tags</span>
       </div>
   </nav>
@@ -190,6 +190,90 @@
 
 
     <div class="main-inner index posts-expand">
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://linuxholic.github.io/2022/09/09/cpu-scaling-governor/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="linuxholic">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="linuxholic's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2022/09/09/cpu-scaling-governor/" class="post-title-link" itemprop="url">cpu-scaling-governor</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2022-09-09 14:49:42" itemprop="dateCreated datePublished" datetime="2022-09-09T14:49:42+08:00">2022-09-09</time>
+    </span>
+      <span class="post-meta-item">
+        <span class="post-meta-item-icon">
+          <i class="far fa-calendar-check"></i>
+        </span>
+        <span class="post-meta-item-text">Edited on</span>
+        <time title="Modified: 2022-09-13 18:33:36" itemprop="dateModified" datetime="2022-09-13T18:33:36+08:00">2022-09-13</time>
+      </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><p>缓存服务的吞吐出现明显下降，更具体一点，<strong>命中状态下的吐出带宽</strong> 偏低。</p>
+<h1 id="网络瓶颈"><a href="#网络瓶颈" class="headerlink" title="网络瓶颈"></a>网络瓶颈</h1><p>因为数据是从本地吐出的，所以最开始怀疑是网络的因素，通过小米监控查看了 tcp 相关的指标，比如：</p>
+<ul>
+<li>TcpExt.PruneCalled：TCP 协议层主动丢包</li>
+<li>TcpExt.TCPTimeouts：TCP 传输超时</li>
+</ul>
+<p>相比其他负载差不多的机器，这些指标都要显著偏高。结合以往经验，TCP 的这些指标异常也有可能只是表象，是其他原因导致了这些异常，我们不能简单的将这些异常直接归为根本原因。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2022/09/09/cpu-scaling-governor/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
 
     
 

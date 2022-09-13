@@ -2,6 +2,13 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://linuxholic.github.io/2022/09/09/cpu-scaling-governor/</loc>
+    
+    <lastmod>2022-09-13T10:33:36.364Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>http://linuxholic.github.io/2022/07/29/aio-overflow/</loc>
     
     <lastmod>2022-07-29T02:11:03.783Z</lastmod>

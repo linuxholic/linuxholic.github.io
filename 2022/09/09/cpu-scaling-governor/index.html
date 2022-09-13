@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="default">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="3DzbNTXQSAElCpW5ej0bVwyAZlRcuPzBwC0_g2IMw7A">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.2/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@3.1.1/animate.min.css">
+
+<script class="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"linuxholic.github.io","root":"/","images":"/images","scheme":"Muse","version":"8.2.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}};
+  </script>
+<meta name="description" content="背景缓存服务的吞吐出现明显下降，更具体一点，命中状态下的吐出带宽 偏低。 网络瓶颈因为数据是从本地吐出的，所以最开始怀疑是网络的因素，通过小米监控查看了 tcp 相关的指标，比如：  TcpExt.PruneCalled：TCP 协议层主动丢包 TcpExt.TCPTimeouts：TCP 传输超时  相比其他负载差不多的机器，这些指标都要显著偏高。结合以往经验，TCP 的这些指标异常也有可能只是">
+<meta property="og:type" content="article">
+<meta property="og:title" content="cpu-scaling-governor">
+<meta property="og:url" content="http://linuxholic.github.io/2022/09/09/cpu-scaling-governor/index.html">
+<meta property="og:site_name" content="linuxholic&#39;s blog">
+<meta property="og:description" content="背景缓存服务的吞吐出现明显下降，更具体一点，命中状态下的吐出带宽 偏低。 网络瓶颈因为数据是从本地吐出的，所以最开始怀疑是网络的因素，通过小米监控查看了 tcp 相关的指标，比如：  TcpExt.PruneCalled：TCP 协议层主动丢包 TcpExt.TCPTimeouts：TCP 传输超时  相比其他负载差不多的机器，这些指标都要显著偏高。结合以往经验，TCP 的这些指标异常也有可能只是">
+<meta property="og:locale">
+<meta property="og:image" content="http://linuxholic.github.io/images/hit-speed.png">
+<meta property="og:image" content="http://linuxholic.github.io/images/TcpPruned.png">
+<meta property="og:image" content="http://linuxholic.github.io/images/TcpTimeouts.png">
+<meta property="article:published_time" content="2022-09-09T06:49:42.000Z">
+<meta property="article:modified_time" content="2022-09-13T10:33:36.364Z">
+<meta property="article:author" content="linuxholic">
+<meta property="article:tag" content="tcp">
+<meta property="article:tag" content="cpu">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://linuxholic.github.io/images/hit-speed.png">
+
+
+<link rel="canonical" href="http://linuxholic.github.io/2022/09/09/cpu-scaling-governor/">
+
+
+<script class="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'default'
+  };
+</script>
+<title>cpu-scaling-governor | linuxholic's blog</title>
+  
+
+
+
+
+  <noscript>
+  <style>
+  body { margin-top: 2rem; }
+
+  .use-motion .menu-item,
+  .use-motion .sidebar,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header {
+    visibility: visible;
+  }
+
+  .use-motion .header,
+  .use-motion .site-brand-container .toggle,
+  .use-motion .footer { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle,
+  .use-motion .custom-logo-image {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line {
+    transform: scaleX(1);
+  }
+
+  .search-pop-overlay, .sidebar-nav { display: none; }
+  .sidebar-panel { display: block; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">linuxholic's blog</h1>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">背景</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%BD%91%E7%BB%9C%E7%93%B6%E9%A2%88"><span class="nav-number">2.</span> <span class="nav-text">网络瓶颈</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#netdev-budget"><span class="nav-number">2.1.</span> <span class="nav-text">netdev_budget</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#cpu-bench"><span class="nav-number">2.2.</span> <span class="nav-text">cpu bench</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#tcp-memory"><span class="nav-number">2.3.</span> <span class="nav-text">tcp memory</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#CPU-%E9%A2%91%E7%8E%87"><span class="nav-number">3.</span> <span class="nav-text">CPU 频率</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Inter-SpeedStep"><span class="nav-number">3.1.</span> <span class="nav-text">Inter SpeedStep</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%8A%82%E8%83%BD%E6%A8%A1%E5%BC%8F-vs-%E6%80%A7%E8%83%BD%E6%A8%A1%E5%BC%8F"><span class="nav-number">3.2.</span> <span class="nav-text">节能模式 vs 性能模式</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%BB%93%E8%AE%BA"><span class="nav-number">4.</span> <span class="nav-text">结论</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">linuxholic</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives">
+          <span class="site-state-item-count">6</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+
+
+
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="back-to-top" role="button">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="default">
+    <link itemprop="mainEntityOfPage" href="http://linuxholic.github.io/2022/09/09/cpu-scaling-governor/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="linuxholic">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="linuxholic's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          cpu-scaling-governor
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2022-09-09 14:49:42" itemprop="dateCreated datePublished" datetime="2022-09-09T14:49:42+08:00">2022-09-09</time>
+    </span>
+      <span class="post-meta-item">
+        <span class="post-meta-item-icon">
+          <i class="far fa-calendar-check"></i>
+        </span>
+        <span class="post-meta-item-text">Edited on</span>
+        <time title="Modified: 2022-09-13 18:33:36" itemprop="dateModified" datetime="2022-09-13T18:33:36+08:00">2022-09-13</time>
+      </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><p>缓存服务的吞吐出现明显下降，更具体一点，<strong>命中状态下的吐出带宽</strong> 偏低。</p>
+<h1 id="网络瓶颈"><a href="#网络瓶颈" class="headerlink" title="网络瓶颈"></a>网络瓶颈</h1><p>因为数据是从本地吐出的，所以最开始怀疑是网络的因素，通过小米监控查看了 tcp 相关的指标，比如：</p>
+<ul>
+<li>TcpExt.PruneCalled：TCP 协议层主动丢包</li>
+<li>TcpExt.TCPTimeouts：TCP 传输超时</li>
+</ul>
+<p>相比其他负载差不多的机器，这些指标都要显著偏高。结合以往经验，TCP 的这些指标异常也有可能只是表象，是其他原因导致了这些异常，我们不能简单的将这些异常直接归为根本原因。</p>
+<span id="more"></span>
+<p>紧接着查看了更为底层的 <code>/proc/net/softnet_stat</code> 数据：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">02460248 00000000 000000af 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000</span><br><span class="line">012e9a61 00000000 00000d44 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000001</span><br><span class="line">01aae54c 00000000 00000092 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000002</span><br></pre></td></tr></table></figure>
+<p>这个数据源在之前的文章 <a href="/2019/03/30/networking-perf/" title="networking-perf">networking-perf</a> 也有提及，这里主要关注其中的第二列数据：</p>
+<blockquote>
+<p>time_squeeze：在一个 loop 中处理 packet 时被打断的次数</p>
+</blockquote>
+<p>正常情况下，如果机器的网络包处理能力充足，这列数据应该保持不变（当然，绝对值可以很大，因为这个数据是从机器启动开始一直累加的，所以历史数据不代表当前情况）；</p>
+<p>通过反复查看，线上机器的这列数据在 <strong>持续的增加</strong>，说明包处理存在瓶颈。</p>
+<p>接下来有两个排查方向：</p>
+<ol>
+<li>一个 loop 内可以处理的包数量阈值偏低，导致频繁被打断</li>
+<li>一个 loop 内处理超时，达到了时间阈值，导致被打断</li>
+</ol>
+<h2 id="netdev-budget"><a href="#netdev-budget" class="headerlink" title="netdev_budget"></a>netdev_budget</h2><p>通过增加 net.core.netdev_budget 系统配置项的值，我们可以增加一个 loop 内处理 packet 的数量上限</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sysctl net.core.netdev_budget</span><br><span class="line">sysctl -w net.core.netdev_budget&#x3D;4096</span><br></pre></td></tr></table></figure>
+<p>通过 sysctl 调高该值之后，观察业务指标基本没有变化 (╯‵□′)╯︵┻━┻</p>
+<p>如果不是因为一个 loop 内处理包数量达到了限制，就只能是因为触发了时长限制；也就是一个 loop 内即使只处理了并不算多的 packet，也已经耗尽了固定 <code>jiffies</code> 时长，所以仍然会被打断，因为是 CPU 自身处理慢。</p>
+<h2 id="cpu-bench"><a href="#cpu-bench" class="headerlink" title="cpu bench"></a>cpu bench</h2><p>为了验证这个猜想，我们使用一个简单的 python 脚本对机器 CPU 进行压测对比</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/bin/env python</span></span><br><span class="line"><span class="comment">#-*- coding:utf8 -*-</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">import</span> affinity</span><br><span class="line"><span class="keyword">import</span> multiprocessing</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">bench_cpu</span>(<span class="params">idx</span>):</span></span><br><span class="line"></span><br><span class="line">    <span class="built_in">print</span> <span class="string">&#x27;benchmark cpu%d&#x27;</span> % idx</span><br><span class="line"></span><br><span class="line">    pid = os.getpid()</span><br><span class="line">    affinity.set_process_affinity_mask(pid, <span class="number">2</span>**idx)</span><br><span class="line"></span><br><span class="line">    res = <span class="number">0</span></span><br><span class="line">    start = time.time()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> idx <span class="keyword">in</span> xrange(<span class="number">10000000</span>):</span><br><span class="line">        res = res + idx</span><br><span class="line"></span><br><span class="line">    end = time.time()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> (end-start)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">main</span>():</span></span><br><span class="line"></span><br><span class="line">    result_list = []</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> idx <span class="keyword">in</span> <span class="built_in">range</span>(multiprocessing.cpu_count()):</span><br><span class="line">        spent_time = bench_cpu(idx)</span><br><span class="line">        result_list.append((idx, spent_time))</span><br><span class="line"></span><br><span class="line">    <span class="built_in">print</span></span><br><span class="line">    <span class="built_in">print</span> <span class="string">&#x27;benchmark over.&#x27;</span></span><br><span class="line">    <span class="built_in">print</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> result <span class="keyword">in</span> result_list:</span><br><span class="line">        idx, spent_time = result</span><br><span class="line">        <span class="built_in">print</span> <span class="string">&#x27;cpu%d: %f&#x27;</span> % (idx, spent_time)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    main()</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>可以发现，问题机器相比其他机器，压测脚本执行时间明显更长</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cpu0: 0.315132 (node-1)</span><br><span class="line">cpu0: 1.283741 (node-2)</span><br></pre></td></tr></table></figure>
+<p>性能相差多达四倍！事情开始变得清晰了：</p>
+<ul>
+<li>CPU 处理慢，也就导致了 packet 延时高（等待进入第二轮 loop 才能被处理），进而出现各种 tcp timeout…</li>
+<li>CPU 慢，也会导致各层 buffer 占满，最终通过某些指标暴露出来，比如 tcp memory pressure，tcp prune called 等等；因为在各层队列滞留，也进一步加剧了 packet 的延迟情况</li>
+</ul>
+<p>一环扣一环，道理是相通的；如果不是 CPU，而是其他的某个地方慢了，其实也就是无非这两种结果：延迟变高 &amp; buffer 溢出；整个软件系统，其实就是一层层的队列堆出来的，每层封装，都对应其自身的队列，从而才能达到解耦的设计目的。</p>
+<h2 id="tcp-memory"><a href="#tcp-memory" class="headerlink" title="tcp memory"></a>tcp memory</h2><p>为了进一步验证 tcp buffer 的猜想，我们调整了机器的 tcp memory 相关设置：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">net.core.rmem_default &#x3D; 212992</span><br><span class="line">net.core.rmem_max &#x3D; 212992</span><br><span class="line">net.core.wmem_default &#x3D; 212992</span><br><span class="line">net.core.wmem_max &#x3D; 212992</span><br><span class="line">net.ipv4.tcp_mem &#x3D; 22152        29538   44304</span><br><span class="line">net.ipv4.tcp_rmem &#x3D; 4096        131072  6291456</span><br><span class="line">net.ipv4.tcp_wmem &#x3D; 4096        16384   4194304</span><br></pre></td></tr></table></figure>
+<p>这其中配置的含义，也有在之前的 <a href="/2022/03/24/tcp-mem/" title="tcp-mem">tcp-mem</a> 中提到过，此处不再赘述。</p>
+<p>调整生效之后，观察到业务指标明显改善，基本符合之前的预期 ：CPU 慢会导致 packet 在各个层级堆积，如果某个层级的 buffer 能力不足，就会开始拖后腿，并通过一定的监控指标暴露出来；tcp 协议栈表现出来的 memory pressure，就说明堆积已经超过了其当前的 buffer 能力，所以可以通过增加 tcp mem 来一定程度上缓解当前的问题（但再大的内存也还是会被 slow cpu 来不及处理而填满）</p>
+<h1 id="CPU-频率"><a href="#CPU-频率" class="headerlink" title="CPU 频率"></a>CPU 频率</h1><p>虽然基本定位到是 CPU 的原因，但是更换硬件必然很慢，所以还是继续尝试看下，是否存在一些可以立即调整的软限制。</p>
+<p>通过 <code>cpuinfo</code> 查看  CPU 相关信息：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat &#x2F;proc&#x2F;cpuinfo | grep &quot;model name&quot;</span><br></pre></td></tr></table></figure>
+<p>原本想看下 CPU 型号信息，看问题机器的是否不太一样，结果却发现了其他有意思的地方</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">model name      : Intel(R) Xeon(R) CPU E5-2620 v4 @ 2.10GHz</span><br></pre></td></tr></table></figure>
+<p>问题机器的 CPU 主频（最后一个字段）竟然还高于其他机器！</p>
+<h2 id="Inter-SpeedStep"><a href="#Inter-SpeedStep" class="headerlink" title="Inter SpeedStep"></a>Inter SpeedStep</h2><p>这和我们先前的猜想背道而驰，不太对。CPU 频率代表了其执行 instruction 的速度，频率越高，单位时间内可以执行更多的指令，也就意味着性能更高。带着这个疑点，进一步查看了代表 CPU 实际运行频率的指标：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat &#x2F;proc&#x2F;cpuinfo | grep &quot;cpu MHz&quot;</span><br></pre></td></tr></table></figure>
+<p>发现两个值得注意的地方</p>
+<ol>
+<li>问题机器的 CPU 运行频率 <strong>一直在变化</strong></li>
+<li>问题机器的 CPU 运行频率明显 <strong>低于其他正常机器</strong></li>
+</ol>
+<p>基于 CPU 频率变化这一事实，我们也就很快发现了 Inter <a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/SpeedStep">SpeedStep</a> 这一 CPU 调频机制。</p>
+<h2 id="节能模式-vs-性能模式"><a href="#节能模式-vs-性能模式" class="headerlink" title="节能模式 vs 性能模式"></a>节能模式 vs 性能模式</h2><p>Inter CPU 可以设置不同的频率模式，以适应不同的场景需求；对应的，内核也提供了相应的接口进行调整</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">cat &#x2F;sys&#x2F;devices&#x2F;system&#x2F;cpu&#x2F;cpu11&#x2F;cpufreq&#x2F;scaling_available_governors</span><br><span class="line">cat &#x2F;sys&#x2F;devices&#x2F;system&#x2F;cpu&#x2F;cpu11&#x2F;cpufreq&#x2F;scaling_governor</span><br><span class="line">cat &#x2F;sys&#x2F;devices&#x2F;system&#x2F;cpu&#x2F;cpu11&#x2F;cpufreq&#x2F;scaling_cur_freq</span><br><span class="line">cat &#x2F;sys&#x2F;devices&#x2F;system&#x2F;cpu&#x2F;cpu11&#x2F;cpufreq&#x2F;scaling_max_freq</span><br><span class="line">cat &#x2F;sys&#x2F;devices&#x2F;system&#x2F;cpu&#x2F;cpu11&#x2F;cpufreq&#x2F;scaling_min_freq</span><br></pre></td></tr></table></figure>
+<p>linux kernel 目前支持的模式主要有 performance，powersave 等几种，具体可以参考 <a target="_blank" rel="noopener" href="https://www.kernel.org/doc/html/latest/admin-guide/pm/cpufreq.html#generic-scaling-governors">内核文档</a></p>
+<p>其中，在 powersave，也即 节能模式 下，就会导致 CPU 开启 SpeedStep 功能，动态调整 CPU 频率；本意是为了降低功耗，讲道理，这种模式一般只适用于桌面场景，而对于服务器场景，都是需要 performance 模式的，才能最大化服务器的利用效率。</p>
+<h1 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h1><p>问题机器开启了 CPU <code>powersave</code> 节能模式，导致 CPU 运行频率持续偏低，从而引发业务上网络处理出现瓶颈。</p>
+<p>解决方式就很简单了，直接写入 <code>scaling_governor</code> 的 sys 接口，更改模式为 <code>performance</code> 即可，调整之后立竿见影：</p>
+<ul>
+<li>业务指标恢复到和其他正常机器一致的水平</li>
+<li>TCP 相关指标也恢复正常<ul>
+<li><code>TcpExt.PruneCalled</code> 主动丢包，完全消失</li>
+<li><code>TcpExt.TCPTimeouts</code> 超时基本消失，和其他机器同一水平<code></code></li>
+</ul>
+</li>
+</ul>
+<p>PS：无图无真相，附带几张小米监控的截图</p>
+<blockquote>
+<p>业务指标</p>
+</blockquote>
+<p><img src="/images/hit-speed.png" alt=""></p>
+<blockquote>
+<p>TcpExt.PruneCalled</p>
+</blockquote>
+<p><img src="/images/TcpPruned.png" alt=""></p>
+<blockquote>
+<p>TcpExt.TCPTimeouts</p>
+</blockquote>
+<p><img src="/images/TcpTimeouts.png" alt=""></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/tcp/" rel="tag"># tcp</a>
+              <a href="/tags/cpu/" rel="tag"># cpu</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2022/07/29/aio-overflow/" rel="prev" title="aio-overflow">
+                  <i class="fa fa-chevron-left"></i> aio-overflow
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      const activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      const commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">linuxholic</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/schemes/muse.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

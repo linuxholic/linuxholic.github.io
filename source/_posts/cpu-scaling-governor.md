@@ -1,5 +1,5 @@
 ---
-title: cpu-scaling-governor
+title: 震惊！服务器 CPU 也可以调频？
 date: 2022-09-09 14:49:42
 tags:
     - cpu

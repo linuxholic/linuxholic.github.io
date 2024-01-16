@@ -1,8 +1,9 @@
 ---
-title: nginx-buffering
+title: 为什么 nginx 总是在下载到 1GB 时中断？
 date: 2021-11-23 20:37:06
 tags:
     - nginx
+    - MagicNumber
 ---
 
 ## nginx 缓冲

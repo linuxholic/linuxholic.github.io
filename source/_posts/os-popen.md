@@ -1,5 +1,5 @@
 ---
-title: os-popen
+title: 你还在用 Python 中的 os.popen 吗？
 date: 2021-03-02 15:31:21
 tags:
     - python
